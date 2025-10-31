@@ -13,6 +13,7 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 from aiogram.utils.text_decorations import html_decoration as hd
 from dotenv import load_dotenv
+from fastapi import FastAPI
 import httpx
 
 
@@ -44,6 +45,7 @@ log = logging.getLogger("weather-bot")
 HTTP_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 BASE_URL = "https://api.openweathermap.org/data/2.5"
 _client: Optional[httpx.AsyncClient] = None
+_polling_task: Optional[asyncio.Task] = None
 
 
 async def get_client() -> httpx.AsyncClient:
@@ -227,6 +229,7 @@ def build_forecast_message(payload: Dict[str, Any]) -> str:
 
 dp = Dispatcher()
 bot = Bot(token=TG_KEY, default=DefaultBotProperties(parse_mode="HTML"))
+app = FastAPI(title="weather-bot", version="1.0.0")
 
 
 async def handle_city_lookup(message: Message, city: str) -> None:
@@ -325,3 +328,41 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# ------------------------------------------------------------------------------
+# FASTAPI ENDPOINTS & LIFESPAN HOOKS (for Render.com)
+# ------------------------------------------------------------------------------
+
+@app.get("/")
+async def root() -> Dict[str, Any]:
+    return {"status": "ok", "service": "weather-bot"}
+
+
+@app.get("/healthz")
+async def healthz() -> Dict[str, Any]:
+    return {"ok": True}
+
+
+@app.on_event("startup")
+async def on_startup() -> None:
+    global _polling_task
+    log.info("FastAPI startup: launching aiogram polling task...")
+    _polling_task = asyncio.create_task(
+        dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+    )
+
+
+@app.on_event("shutdown")
+async def on_shutdown() -> None:
+    global _polling_task
+    log.info("FastAPI shutdown: stopping aiogram polling task...")
+    if _polling_task is not None:
+        _polling_task.cancel()
+        try:
+            await _polling_task
+        except asyncio.CancelledError:
+            pass
+        _polling_task = None
+
+    if _client is not None:
+        await _client.aclose()
