@@ -13,7 +13,7 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 from aiogram.utils.text_decorations import html_decoration as hd
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 import httpx
 import uvicorn
 
@@ -178,6 +178,16 @@ async def root():
 @app.get("/healthz")
 async def healthz():
     return {"ok": True}
+
+
+@app.head("/")
+async def root_head():
+    return Response(status_code=200)
+
+
+@app.head("/healthz")
+async def healthz_head():
+    return Response(status_code=200)
 
 
 @app.on_event("startup")
