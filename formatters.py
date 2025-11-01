@@ -10,22 +10,22 @@ def wind_dir_from_deg(deg: Optional[float]) -> str:
     if deg is None:
         return "-"
     dirs = [
-        "N",
-        "NNE",
-        "NE",
-        "ENE",
-        "E",
-        "ESE",
-        "SE",
-        "SSE",
-        "S",
-        "SSW",
-        "SW",
-        "WSW",
-        "W",
-        "WNW",
-        "NW",
-        "NNW",
+        "С",
+        "ССВ",
+        "СВ",
+        "ВСВ",
+        "В",
+        "ВЮВ",
+        "ЮВ",
+        "ЮЮВ",
+        "Ю",
+        "ЮЮЗ",
+        "ЮЗ",
+        "ЗЮЗ",
+        "З",
+        "ЗСЗ",
+        "СЗ",
+        "ССЗ",
     ]
     idx = int((deg % 360) / 22.5 + 0.5) % 16
     return dirs[idx]
